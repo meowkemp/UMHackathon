@@ -63,7 +63,7 @@ def make_decision(income: float, expenses: float, savings: float,
     # ── Needs saving up ───────────────────────────────────────────────────────
     shortfall     = price - spendable_savings
     months_needed = shortfall / surplus
-    metrics["months_to_save"] = round(months_needed)
+    metrics["months_to_save"] = round(months_needed, 1)
  
     if months_needed <= 3:
         decision = "DELAY"
