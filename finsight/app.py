@@ -15,6 +15,16 @@ import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 
+try:
+    import pytesseract
+    import cv2
+    import numpy as np
+    from PIL import Image
+    import html
+    _OCR_AVAILABLE = True
+except ImportError:
+    _OCR_AVAILABLE = False
+    
 # Set path (Windows) — update to match your machine, or remove if Tesseract is on PATH
 # pytesseract.pytesseract.tesseract_cmd = r"C:\Users\YourName\AppData\Local\Programs\Tesseract-OCR\tesseract.exe"
 
