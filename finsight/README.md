@@ -6,7 +6,7 @@ An AI-powered financial decision assistant built for UMHackathon 2026, designed 
 ```
 https://youtu.be/O9APzIVNmJs
 ```
-# Project Overview
+## Project Overview
 FinSight AI enables users to:
 💰 Evaluate whether they should BUY, DELAY, or RECONSIDER a purchase
 📊 Simulate financial impact over time
@@ -28,7 +28,7 @@ finsight/
     ├── benchmarks.py       ← Dataset peer comparisons
     └── ai_explainer.py     ← ILMU GLM API call
 ```
-# OCR Setup (REQUIRED for Receipt Scanner)
+## OCR Setup (REQUIRED for Receipt Scanner)
 
 FinSight uses Tesseract OCR for extracting text from receipts.
 
