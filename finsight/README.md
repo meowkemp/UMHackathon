@@ -29,15 +29,13 @@ finsight/
 
 FinSight uses Tesseract OCR for extracting text from receipts.
 
-###Step 1: Install Tesseract
-
+### Step 1: Install Tesseract
 Download from:
 ```
 https://github.com/UB-Mannheim/tesseract/wiki
 ```
 
 ### Step 2: Find Installation Path
-
 Example:
 ```
 C:\Program Files\Tesseract-OCR\tesseract.exe
