@@ -86,8 +86,7 @@ The app opens automatically at http://localhost:8501
 | 📸 Receipt Scanner | Upload a photo → auto-extract price → instant analysis |
 
 ## Team
-Fantastic 5 
-Team ID: 27
+Fantastic 5 (Team ID: 27)
 
 ## Team Members
 1. Bibianne Zheyee Joseph
