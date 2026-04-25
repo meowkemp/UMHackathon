@@ -2,8 +2,11 @@
 
 An AI-powered financial decision assistant built for UMHackathon 2026, designed to help users make smarter purchase decisions through simulation, benchmarking, and explainable AI.
 
+## 🎥 Demo Video
+```
+https://youtu.be/O9APzIVNmJs
+```
 # Project Overview
-
 FinSight AI enables users to:
 💰 Evaluate whether they should BUY, DELAY, or RECONSIDER a purchase
 📊 Simulate financial impact over time
