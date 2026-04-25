@@ -8,11 +8,6 @@ Run with:  streamlit run app.py
 import base64
 import sys
 import os
-
-import pytesseract
-import cv2
-import numpy as np
-from PIL import Image
 import re
 
 import pandas as pd
@@ -20,54 +15,13 @@ import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 
-# Set path (Windows)
-pytesseract.pytesseract.tesseract_cmd = r"C:\Users\Angel\AppData\Local\Programs\Tesseract-OCR\tesseract.exe"
-
-def generate_local_insights(income, expenses, savings, price, score, risk):
-    surplus = income - expenses
-    remaining = savings - price
-
-    summary = ""
-    explanation = ""
-    alternatives = ""
-    action = ""
-
-    # Summary
-    if surplus > 0 and remaining > 1000:
-        summary = "You are financially stable for this purchase."
-    elif remaining < 500:
-        summary = "This purchase may reduce your financial safety."
-    else:
-        summary = "This purchase is manageable but requires caution."
-
-    # Explanation
-    explanation = f"After buying, you will have RM {remaining:,.2f} left. Your monthly surplus is RM {surplus:,.2f}."
-
-    # Alternatives
-    if price > surplus:
-        alternatives = "Consider delaying or finding a cheaper alternative."
-    else:
-        alternatives = "You could proceed, but compare prices before buying."
-
-    # Action
-    if risk == "HIGH":
-        action = "Avoid this purchase for now."
-    elif risk == "MEDIUM":
-        action = "Wait 1–2 months before buying."
-    else:
-        action = "Safe to proceed."
-
-    return {
-        "summary": summary,
-        "explanation": explanation,
-        "alternatives": alternatives,
-        "action": action
-    }
+# Set path (Windows) — update to match your machine, or remove if Tesseract is on PATH
+# pytesseract.pytesseract.tesseract_cmd = r"C:\Users\YourName\AppData\Local\Programs\Tesseract-OCR\tesseract.exe"
 
 # Make sure core/ is importable
 sys.path.insert(0, os.path.dirname(__file__))
 from core.advisor      import make_decision
-from core.ai_explainer import get_ai_explanation, scan_receipt_image
+from core.ai_explainer import get_ai_explanation, get_followup_answer, scan_receipt_image
 from core.benchmarks   import get_peer_benchmarks, get_expense_percentile, get_savings_percentile
 from core.simulator    import get_scenarios
 from core.scoring      import calculate_score, classify_risk, validate_inputs, validate_ai_output, get_score_label
@@ -95,7 +49,6 @@ html, body, [class*="css"] {
     font-family: 'Poppins', sans-serif;
     font-weight: 400;
 }
-
 
 /* ===== BACKGROUND ===== */
 .stApp {
@@ -125,14 +78,12 @@ h1, h2, h3, h4, h5, h6 {
     letter-spacing: -0.02em;
 }
 
-/* Streamlit titles */
 div[data-testid="stMarkdownContainer"] h1,
 div[data-testid="stMarkdownContainer"] h2,
 div[data-testid="stMarkdownContainer"] h3 {
     font-weight: 900;
 }
 
-/* Paragraphs, labels, inputs */
 p, label, span, input {
     font-weight: 600;
 }
@@ -157,15 +108,13 @@ p, label, span, input {
     margin: 20px 0;
 }
 
-/* STATES */
 .BUY {
     background: #dcfce7;
     color: #14532d;
 }
 
-/* ===== DELAY (CLEAN WARNING STYLE) ===== */
 .DELAY {
-    background: #fffbeb;              /* soft solid */
+    background: #fffbeb;
     color: #78350f;
     border: 1px solid #fde68a;
     border-radius: 18px;
@@ -177,21 +126,22 @@ p, label, span, input {
 }
 
 /* ===== BUTTON ===== */
-.stButton > button {
-    border-radius: 12px;
+.stButton > button,
+.stButton > button[kind="primary"] {
+    border-radius: 12px !important;
     padding: 12px 18px;
     font-weight: 600;
-
-    background: linear-gradient(135deg, #60a5fa, #3b82f6);
-    color: white;
+    background: linear-gradient(135deg, #60a5fa, #3b82f6) !important;
+    color: #111827 !important;
     border: none;
-
     transition: all 0.2s ease;
 }
 
-.stButton > button:hover {
-    background: linear-gradient(135deg, #93c5fd, #60a5fa);
+.stButton > button:hover,
+.stButton > button[kind="primary"]:hover {
+    background: linear-gradient(135deg, #93c5fd, #60a5fa) !important;
     box-shadow: 0 6px 16px rgba(59,130,246,0.3);
+    color: #111827 !important;
 }
 
 /* ===== SIDEBAR ===== */
@@ -203,37 +153,38 @@ section[data-testid="stSidebar"] {
         #fecdd3 100%
     );
     border-right: 1px solid #fda4af;
-    
+
     section[data-testid="stSidebar"] h1,
     section[data-testid="stSidebar"] h2,
     section[data-testid="stSidebar"] h3 {
         color: #881337;
     }
-    
+
     section[data-testid="stSidebar"] p,
     section[data-testid="stSidebar"] label {
-}
+    }
 }
 
-/* ===== TAB FIX (IMPORTANT) ===== */
+/* ===== TAB FIX ===== */
 div[data-testid="stTabs"] button {
     border-radius: 12px 12px 0 0;
     padding: 10px 16px;
     color: #6B7280;
+    font-size: 20px;
+    font-weight: 500;
 }
 
-/* ACTIVE TAB (WORKING SELECTOR) */
+/* ACTIVE TAB */
 div[data-testid="stTabs"] button[aria-selected="true"] {
     background: white;
-    color: #111827;
+    color: #111827 !important;
+    font-size: 20px;
     font-weight: 600;
-
     box-shadow: 0 4px 12px rgba(0,0,0,0.08);
 }
 
 /* ===== CUSTOM ALERT CARDS ===== */
 
-/* WARNING */
 .alert-warning {
     background: linear-gradient(135deg, #fff7ed, #fde68a);
     color: #7c2d12;
@@ -244,7 +195,6 @@ div[data-testid="stTabs"] button[aria-selected="true"] {
     font-weight: 500;
 }
 
-/* SUCCESS */
 .alert-success {
     background: linear-gradient(135deg, #ecfdf5, #bbf7d0);
     color: #14532d;
@@ -253,11 +203,6 @@ div[data-testid="stTabs"] button[aria-selected="true"] {
     padding: 14px 16px;
     margin-top: 10px;
     font-weight: 500;
-}
-
-/* ===== BUTTON TEXT FIX ===== */
-.stButton > button {
-    color: #111827 !important;   /* force black text */
 }
 
 /* ===== MAROON INFO SYSTEM ===== */
@@ -270,7 +215,11 @@ div[data-testid="stTabs"] button[aria-selected="true"] {
     transition: 0.2s;
 }
 
-/* MAIN MAROON (default info) */
+.info-block:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.05);
+}
+
 .info-maroon {
     background: #fff1f2;
     color: #881337;
@@ -279,28 +228,20 @@ div[data-testid="stTabs"] button[aria-selected="true"] {
     padding: 14px 18px;
 }
 
-/* SUCCESS (maroon-green tone) */
 .info-maroon-success {
     background: linear-gradient(135deg, #f0fdf4, #dcfce7);
     color: #14532d;
     border: 1px solid #86efac;
 }
 
-/* WARNING (maroon-yellow tone) */
 .info-maroon-warning {
-    background: #fef3c7;        /* soft yellow */
-    color: #7c2d12;             /* maroon text */
+    background: #fef3c7;
+    color: #7c2d12;
     border: 1px solid #facc15;
     border-radius: 14px;
     padding: 14px 18px;
     margin: 10px 0;
     font-weight: 500;
-}
-
-/* hover effect */
-.info-block:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 6px 16px rgba(0,0,0,0.05);
 }
 
 /* ===== SURPLUS (GREEN) ===== */
@@ -314,7 +255,7 @@ div[data-testid="stTabs"] button[aria-selected="true"] {
     margin-top: 10px;
 }
 
-/* ===== BREAK EVEN (MAROON-YELLOW) ===== */
+/* ===== BREAK EVEN ===== */
 .break-even-box {
     background: #fffbeb;
     color: #78350f;
@@ -325,7 +266,7 @@ div[data-testid="stTabs"] button[aria-selected="true"] {
     margin-top: 10px;
 }
 
-/* ===== DEFICIT (MAROON-RED) ===== */
+/* ===== DEFICIT ===== */
 .deficit-box {
     background: #fef2f2;
     color: #7f1d1d;
@@ -337,8 +278,6 @@ div[data-testid="stTabs"] button[aria-selected="true"] {
 }
 
 /* ===== CLEAN NUMBER INPUT ===== */
-
-/* whole container */
 div[data-testid="stNumberInput"] {
     background: white;
     border: 1px solid #E5E7EB;
@@ -346,7 +285,6 @@ div[data-testid="stNumberInput"] {
     padding: 6px 10px;
 }
 
-/* input field */
 div[data-testid="stNumberInput"] input {
     border: none !important;
     background: transparent !important;
@@ -355,33 +293,12 @@ div[data-testid="stNumberInput"] input {
     color: #111827;
 }
 
-/* remove ugly inner borders */
 div[data-testid="stNumberInput"] > div {
     border: none !important;
 }
 
-/* hide +/- buttons (important) */
 div[data-testid="stNumberInput"] button {
     display: none;
-}
-
-/* ===== TAB TEXT SIZE ===== */
-div[data-testid="stTabs"] button {
-    font-size: 20px; 
-    font-weight: 500;
-    color: #6B7280;
-}
-
-/* ===== ACTIVE TAB (CLICKED) ===== */
-div[data-testid="stTabs"] button[aria-selected="true"] {
-    color: #111827 !important; 
-    font-size: 20px;      
-    font-weight: 600;
-
-    background: white;
-    border-radius: 12px 12px 0 0;
-
-    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
 }
 
 </style>
@@ -439,6 +356,9 @@ with st.sidebar:
 
 st.caption("All values in Malaysian Ringgit (RM)")
 
+# ── Shared benchmarks (computed once, available to all tabs) ──────────────────
+benchmarks = get_peer_benchmarks(income, employment_map[persona])
+
 # ─────────────────────────────────────────────────────────────────────────────
 # TABS
 # ─────────────────────────────────────────────────────────────────────────────
@@ -463,6 +383,14 @@ with tab1:
         category = st.selectbox("Category", ["Electronics", "Transport", "Fashion", "Food", "Essential", "Other"])
         urgency  = st.slider("How urgent is this? (1 = Not important , 10 = Important)", 1, 10, 5)
 
+    # ── Session state initialisation ──────────────────────────────────────────
+    if "analysis" not in st.session_state:
+        st.session_state.analysis = None
+    if "chat_history" not in st.session_state:
+        st.session_state.chat_history = []
+    if "chat_context" not in st.session_state:
+        st.session_state.chat_context = {}
+
     if st.button("🔍 Analyze Purchase", use_container_width=True, type="primary"):
 
         # ── Validate inputs first ─────────────────────────────────────────────
@@ -478,9 +406,42 @@ with tab1:
         reason   = result["reason"]
         metrics  = result["metrics"]
 
-        # ── Score + risk (Person 5) ───────────────────────────────────────────
+        # ── Score + risk ──────────────────────────────────────────────────────
         score = calculate_score(income, expenses, savings, price, urgency)
         risk  = classify_risk(score, metrics.get("months_to_save"))
+        score_label, score_emoji = get_score_label(score)
+
+        # ── Scenarios for richer AI context ───────────────────────────────────
+        scenarios = get_scenarios(income, expenses, savings, price, months=12)
+
+        # ── AI explanation ────────────────────────────────────────────────────
+        with st.spinner("Getting personalised advice..."):
+            ai_raw = get_ai_explanation(
+                income, expenses, savings, price,
+                item, decision, reason, benchmarks, persona,
+                score=score, risk=risk, scenarios=scenarios,
+                category=category, urgency=urgency,
+            )
+
+        # ── Persist to session state so results survive rerenders ─────────────
+        st.session_state.analysis = {
+            "decision": decision, "reason": reason, "metrics": metrics,
+            "score": score, "risk": risk, "ai": validate_ai_output(ai_raw),
+        }
+        st.session_state.chat_history = []
+        st.session_state.chat_context = {
+            "income": income, "expenses": expenses, "savings": savings,
+            "price": price, "item": item, "decision": decision,
+        }
+
+    # ── Display results (persists after button click) ─────────────────────────
+    if st.session_state.analysis:
+        a        = st.session_state.analysis
+        decision = a["decision"]
+        metrics  = a["metrics"]
+        score    = a["score"]
+        risk     = a["risk"]
+        ai       = a["ai"]
         score_label, score_emoji = get_score_label(score)
 
         # ── Metrics row ───────────────────────────────────────────────────────
@@ -504,23 +465,17 @@ with tab1:
         )
         st.markdown(f"""
                     <div class="card">
-                    {reason}
+                    {a["reason"]}
                     </div>
                     """, unsafe_allow_html=True)
 
-        # ── AI explanation (Person 3) ─────────────────────────────────────────
+        # ── AI explanation ────────────────────────────────────────────────────
         st.subheader("🧠 AI Advisor")
-        with st.spinner("Getting personalised advice..."):
-            benchmarks = get_peer_benchmarks(income, employment_map[persona])
-            ai_raw = get_ai_explanation(
-                income, expenses, savings, price,
-                item, decision, reason, benchmarks, persona,
-                score=score, risk=risk
-            )
-            ai = validate_ai_output(ai_raw)
 
         if ai["summary"]:
             st.markdown(f"**{ai['summary']}**")
+        if ai.get("tradeoff"):
+            st.warning(f"⚖️ **Trade-off:** {ai['tradeoff']}")
         if ai["explanation"]:
             st.write(ai["explanation"])
         if ai["alternatives"]:
@@ -535,6 +490,42 @@ with tab1:
                         ✅ <b>Do this today:</b> {ai['action']}
                         </div>
                         """, unsafe_allow_html=True)
+        if ai.get("confidence"):
+            conf_color = {"HIGH": "🟢", "MEDIUM": "🟡", "LOW": "🔴"}.get(ai["confidence"], "⚪")
+            st.caption(f"AI confidence: {conf_color} {ai['confidence']}")
+
+        # ── Follow-up chat ────────────────────────────────────────────────────
+        st.divider()
+        st.markdown("**💬 Ask a follow-up question**")
+
+        for msg in st.session_state.chat_history:
+            if msg["role"] == "user":
+                st.markdown(f"**You:** {msg['content']}")
+            else:
+                st.markdown(f"**FinSight:** {msg['content']}")
+
+        followup    = st.text_input("e.g. What if I wait 3 months? What's a cheaper option?", key="followup_input")
+        ask_clicked = st.button("Ask", key="followup_btn")
+
+        if ask_clicked:
+            q = followup.strip() if followup else ""
+            if q:
+                with st.spinner("Thinking..."):
+                    answer = get_followup_answer(
+                        q,
+                        st.session_state.chat_history,
+                        st.session_state.chat_context,
+                    )
+                if "unavailable" in answer.lower() or "api key" in answer.lower():
+                    st.error(f"⚠️ {answer} — The ILMU server may be busy. Wait a moment and try again.")
+                elif answer.startswith("__"):
+                    st.error("⚠️ AI unavailable — try again in a moment.")
+                else:
+                    st.session_state.chat_history.append({"role": "user",      "content": q})
+                    st.session_state.chat_history.append({"role": "assistant", "content": answer})
+                    st.rerun()
+            else:
+                st.warning("Type a question first!")
 
 # ═════════════════════════════════════════════════════════════════════════════
 # TAB 2 — SCENARIO SIMULATOR
@@ -555,9 +546,9 @@ with tab2:
 
     months_labels = [f"Month {i+1}" for i in range(12)]
     df_plot = pd.DataFrame({
-        "Month":    months_labels * 3,
-        "Savings":  scenarios["buy_now"] + scenarios["delay"] + scenarios["skip"],
-        "Scenario": ["Buy Now"] * 12 + ["Delay (10% off)"] * 12 + ["Skip entirely"] * 12,
+        "Month":    months_labels * 4,
+        "Savings":  scenarios["buy_now"] + scenarios["delay"] + scenarios["cheaper_alt"] + scenarios["skip"],
+        "Scenario": ["Buy Now"] * 12 + ["Delay (10% off)"] * 12 + ["Cheaper Alt (30% off)"] * 12 + ["Skip entirely"] * 12,
     })
 
     fig = px.line(
@@ -569,28 +560,30 @@ with tab2:
     color_discrete_map={
         "Buy Now": "#ef4444",
         "Delay (10% off)": "#f59e0b",
+        "Cheaper Alt (30% off)": "#8b5cf6",
         "Skip entirely": "#22c55e",
     }
     )
-    
+
     fig.update_layout(
     plot_bgcolor='white',
     paper_bgcolor='white',
     yaxis_tickprefix="RM ",
     legend_title_text=""
     )
-    
+
     fig.update_xaxes(showgrid=False)
     fig.update_yaxes(gridcolor='rgba(0,0,0,0.1)')
-    
+
     st.plotly_chart(fig, use_container_width=True)
-    
+
     # Summary table
     st.subheader("12-Month Outcome Summary")
-    c1, c2, c3 = st.columns(3)
-    c1.metric("Buy Now",         f"RM {scenarios['buy_now'][-1]:,.0f}",  delta=f"RM {scenarios['buy_now'][-1] - savings:,.0f}")
-    c2.metric("Delay (10% off)", f"RM {scenarios['delay'][-1]:,.0f}",   delta=f"RM {scenarios['delay'][-1] - savings:,.0f}")
-    c3.metric("Skip entirely",   f"RM {scenarios['skip'][-1]:,.0f}",    delta=f"RM {scenarios['skip'][-1] - savings:,.0f}")
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("Buy Now",                  f"RM {scenarios['buy_now'][-1]:,.0f}",     delta=f"RM {scenarios['buy_now'][-1] - savings:,.0f}")
+    c2.metric("Delay (10% off)",          f"RM {scenarios['delay'][-1]:,.0f}",       delta=f"RM {scenarios['delay'][-1] - savings:,.0f}")
+    c3.metric("Cheaper Alt (30% off)",    f"RM {scenarios['cheaper_alt'][-1]:,.0f}", delta=f"RM {scenarios['cheaper_alt'][-1] - savings:,.0f}")
+    c4.metric("Skip entirely",            f"RM {scenarios['skip'][-1]:,.0f}",        delta=f"RM {scenarios['skip'][-1] - savings:,.0f}")
 
     diff = scenarios["skip"][-1] - scenarios["buy_now"][-1]
     st.markdown(f"""
@@ -605,8 +598,6 @@ with tab2:
 with tab3:
     st.header("📊 How Do You Compare?")
     st.caption("Benchmarked against real users with similar income from our dataset.")
-
-    benchmarks = get_peer_benchmarks(income, employment_map[persona])
 
     if not benchmarks:
         st.warning("Not enough peer data for your income level. Try adjusting your income.")
@@ -697,10 +688,13 @@ with tab4:
 
         if st.button("🔍 Scan & Analyze", use_container_width=True, type="primary"):
 
-            import json, urllib.request, html
-            import pytesseract, cv2, numpy as np
-            from PIL import Image
-            import re
+            import html
+            try:
+                import pytesseract, cv2, numpy as np
+                from PIL import Image
+                _OCR_AVAILABLE = True
+            except ImportError:
+                _OCR_AVAILABLE = False
 
             # ─────────────────────────────
             # OCR FUNCTION (FINAL ROBUST)
@@ -761,36 +755,6 @@ with tab4:
                 return items, text
 
             # ─────────────────────────────
-            # LOCAL INSIGHTS
-            # ─────────────────────────────
-            def generate_local_insights(total_price, income, expenses, savings):
-                surplus = income - expenses
-                remaining = savings - total_price
-
-                if remaining > 2000:
-                    summary = "You are financially comfortable for this purchase."
-                elif remaining < 500:
-                    summary = "This purchase may reduce your financial safety."
-                else:
-                    summary = "This purchase is manageable but requires caution."
-
-                explanation = f"Total spending: RM {total_price:.2f}. Remaining savings: RM {remaining:.2f}."
-
-                if total_price > surplus:
-                    alternatives = "Consider splitting purchases or delaying non-essential items."
-                else:
-                    alternatives = "You can proceed, but compare prices for better deals."
-
-                action = "Proceed wisely." if remaining > 1000 else "Delay recommended."
-
-                return {
-                    "summary": summary,
-                    "explanation": explanation,
-                    "alternatives": alternatives,
-                    "action": action
-                }
-
-            # ─────────────────────────────
             # TRY AI FIRST
             # ─────────────────────────────
             api_key = os.environ.get("ILMU_API_KEY", "")
@@ -799,54 +763,14 @@ with tab4:
             if api_key:
                 try:
                     with st.spinner("🤖 Scanning with AI..."):
+                        scan = scan_receipt_image(uploaded.getvalue(), uploaded.type)
 
-                        img_bytes = uploaded.getvalue()
-                        img_b64 = base64.b64encode(img_bytes).decode()
-
-                        body = json.dumps({
-                            "model": "ilmu-glm-5.1",
-                            "messages": [{
-                                "role": "user",
-                                "content": [
-                                    {
-                                        "type": "image",
-                                        "source": {
-                                            "type": "base64",
-                                            "media_type": uploaded.type,
-                                            "data": img_b64,
-                                        }
-                                    },
-                                    {
-                                        "type": "text",
-                                        "text": (
-                                            "Extract ALL items and prices. "
-                                            "Return STRICT JSON array only like: "
-                                            "[{\"item\":\"...\",\"price\":123.45}]"
-                                        )
-                                    }
-                                ]
-                            }]
-                        }).encode()
-
-                        req = urllib.request.Request(
-                            "https://api.ilmu.ai/anthropic/v1/messages",
-                            data=body,
-                            headers={
-                                "Content-Type": "application/json",
-                                "x-api-key": api_key,
-                                "anthropic-version": "2023-06-01",
-                            }
-                        )
-
-                        with urllib.request.urlopen(req, timeout=60) as resp:
-                            data = json.loads(resp.read().decode())
-                            raw = data["content"][0]["text"]
-
-                        clean = raw.replace("```json", "").replace("```", "").strip()
-                        parsed = json.loads(clean)
-
-                        if isinstance(parsed, list):
-                            items = parsed
+                    if scan.get("error") == "VISION_NOT_SUPPORTED":
+                        st.warning("⚠️ AI vision not supported — using OCR instead.")
+                    elif scan.get("error") and scan["price"] == 0:
+                        st.warning(f"⚠️ AI scan failed ({scan['error']}) — using OCR instead.")
+                    elif scan["price"] > 0:
+                        items = [{"item": scan["item"], "price": scan["price"]}]
 
                 except Exception as e:
                     st.warning("⚠️ AI failed — switching to OCR")
@@ -856,18 +780,20 @@ with tab4:
             # OCR FALLBACK
             # ─────────────────────────────
             if not items:
-                with st.spinner("🔍 Running OCR..."):
-                    items, text = ocr_extract_items(uploaded)
+                if _OCR_AVAILABLE:
+                    with st.spinner("🔍 Running OCR..."):
+                        items, text = ocr_extract_items(uploaded)
 
-                    # FIX HTML BREAK
-                    safe_text = html.escape(text)
+                        safe_text = html.escape(text)
 
-                    st.markdown(f"""
-                    <div class="card">
-                    <b>🧾 Extracted Text</b><br><br>
-                    {safe_text}
-                    </div>
-                    """, unsafe_allow_html=True)
+                        st.markdown(f"""
+                        <div class="card">
+                        <b>🧾 Extracted Text</b><br><br>
+                        {safe_text}
+                        </div>
+                        """, unsafe_allow_html=True)
+                else:
+                    st.error("❌ No items detected. Tesseract OCR is not installed — only AI scanning is available.")
 
             # ─────────────────────────────
             # DISPLAY RESULTS
@@ -886,7 +812,9 @@ with tab4:
                 result = make_decision(income, expenses, savings, total_price, urgency=5)
                 decision = result["decision"]
                 reason = result["reason"]
-                
+                score = calculate_score(income, expenses, savings, total_price)
+                risk  = classify_risk(score, result["metrics"].get("months_to_save"))
+
                 emoji = {
                     "BUY": "✅",
                     "DELAY": "⏳",
@@ -907,24 +835,40 @@ with tab4:
                             </div>
                             """, unsafe_allow_html=True)
                 
-                # ── Smart Insights ──────────────────────
-                st.subheader("🧠 Smart Insights")
-                
-                ai = generate_local_insights(total_price, income, expenses, savings)
-                
-                st.markdown(f"""
-                            <div class="card">
-                            <p><b>{ai['summary']}</b></p>
-                            <p>{ai['explanation']}</p>
-                            <div style="background:#f1f5f9;padding:10px;border-radius:8px;margin-top:10px;">
-                            💡 {ai['alternatives']}
-                            </div>
-                            
-                            <div style="background:#dcfce7;padding:10px;border-radius:8px;margin-top:10px;">
-                            ✅ {ai['action']}
-                            </div>
-                            
-                            </div>
-                            """, unsafe_allow_html=True)
+                # ── AI Advisor (full engine, same as Tab 1) ──────────────────
+                st.subheader("🧠 AI Advisor")
+                with st.spinner("Getting personalised advice..."):
+                    scen_re    = get_scenarios(income, expenses, savings, total_price, months=12)
+                    ai_receipt = get_ai_explanation(
+                        income, expenses, savings, total_price,
+                        items[0]["item"] if len(items) == 1 else f"{len(items)}-item receipt",
+                        decision, reason, benchmarks, persona,
+                        score=score, risk=risk, scenarios=scen_re,
+                        category="Other", urgency=5,
+                    )
+                ai = validate_ai_output(ai_receipt)
+
+                if ai["summary"]:
+                    st.markdown(f"**{ai['summary']}**")
+                if ai.get("tradeoff"):
+                    st.warning(f"⚖️ **Trade-off:** {ai['tradeoff']}")
+                if ai["explanation"]:
+                    st.write(ai["explanation"])
+                if ai["alternatives"]:
+                    st.markdown(f"""
+                                <div class="info-block info-maroon">
+                                💡 <b>Smarter alternatives:</b> {ai['alternatives']}
+                                </div>
+                                """, unsafe_allow_html=True)
+                if ai["action"]:
+                    st.markdown(f"""
+                                <div class="info-block info-maroon-success">
+                                ✅ <b>Do this today:</b> {ai['action']}
+                                </div>
+                                """, unsafe_allow_html=True)
+                if ai.get("confidence"):
+                    conf_color = {"HIGH": "🟢", "MEDIUM": "🟡", "LOW": "🔴"}.get(ai["confidence"], "⚪")
+                    st.caption(f"AI confidence: {conf_color} {ai['confidence']}")
+
             else:
                 st.error("❌ No items detected. Try a clearer image.")

@@ -1,0 +1,2 @@
+set ILMU_API_KEY=sk-b61445fa03273944d940b508cdca96db013cc258a7ebc4e1
+python -m streamlit run app.py
