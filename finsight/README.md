@@ -85,11 +85,11 @@ The app opens automatically at http://localhost:8501
 | 📊 Peer Benchmarks | Compare your finances against real peer-group data |
 | 📸 Receipt Scanner | Upload a photo → auto-extract price → instant analysis |
 
-# Team
+### Team
 Fantastic 5 
 Team ID: 27
 
-# Team Members
+## Team Members
 1. Bibianne Zheyee Joseph
 2. Hang Xiu Jun
 3. Kishanea A/P Jeyakumar
