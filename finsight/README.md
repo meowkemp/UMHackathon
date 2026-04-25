@@ -84,3 +84,14 @@ The app opens automatically at http://localhost:8501
 | 📈 Scenario Simulator | See how savings grow under 3 choices over 12 months |
 | 📊 Peer Benchmarks | Compare your finances against real peer-group data |
 | 📸 Receipt Scanner | Upload a photo → auto-extract price → instant analysis |
+
+# Team
+Fantastic 5 
+Team ID: 27
+
+# Team Members
+1. Bibianne Zheyee Joseph
+2. Hang Xiu Jun
+3. Kishanea A/P Jeyakumar
+4. Liew Jia Xin
+5. Ng Guan Yik
