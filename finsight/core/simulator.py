@@ -71,12 +71,13 @@ def get_summary_metrics(income: float, expenses: float, savings: float,
         else:
             recovery_months = None
 
+    # FIXED priority order
     if net_disposable <= 0:
         risk_level = "CRITICAL"
+    elif recovery_months is not None and 3 <= recovery_months <= 6:
+        risk_level = "MEDIUM"                          # ← check MEDIUM first
     elif remaining_balance < 0 or (recovery_months is not None and recovery_months > 6):
         risk_level = "HIGH"
-    elif recovery_months is not None and 3 <= recovery_months <= 6:
-        risk_level = "MEDIUM"
     else:
         risk_level = "LOW"
 
