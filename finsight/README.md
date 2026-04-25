@@ -1,6 +1,14 @@
 # FinSight AI — Smart Purchase Advisor
 
-An AI-powered financial decision tool built for the UMHackathon.
+An AI-powered financial decision assistant built for UMHackathon 2026, designed to help users make smarter purchase decisions through simulation, benchmarking, and explainable AI.
+
+# Project Overview
+
+FinSight AI enables users to:
+💰 Evaluate whether they should BUY, DELAY, or RECONSIDER a purchase
+📊 Simulate financial impact over time
+🤖 Receive AI-generated explanations using ILMU GLM
+📸 Scan receipts and auto-extract prices using OCR
 
 ## Project Structure
 
@@ -16,6 +24,33 @@ finsight/
     ├── simulator.py        ← Savings projection math
     ├── benchmarks.py       ← Dataset peer comparisons
     └── ai_explainer.py     ← ILMU GLM API call
+```
+# OCR Setup (REQUIRED for Receipt Scanner)
+
+FinSight uses Tesseract OCR for extracting text from receipts.
+
+###Step 1: Install Tesseract
+
+Download from:
+```
+https://github.com/UB-Mannheim/tesseract/wiki
+```
+
+### Step 2: Find Installation Path
+
+Example:
+```
+C:\Program Files\Tesseract-OCR\tesseract.exe
+```
+
+### Step 3: Configure in Code
+Open:
+```
+app.py
+```
+Go to line 30 and update:
+```
+pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
 ```
 
 ## Setup
